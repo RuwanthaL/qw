@@ -1,0 +1,94 @@
+
+#include <xc.h>
+#define _XTAL_FREQ 20000000
+#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config BOREN = ON       // Brown-out Reset Enable bit (BOR enabled)
+#pragma config LVP = ON         // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3/PGM pin has PGM function; low-voltage programming enabled)
+#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
+#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
+#pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
+
+#define PIR RD5
+#define buzzer RB2
+#define LED RB3
+#define RS RD0
+#define RW RD1
+#define EN RD2
+
+void lcd_data(unsigned char data)
+{
+ PORTC = data;
+ RS = 1; 
+ RW = 0; 
+ EN = 1; 
+ __delay_ms(100);
+ EN = 0;
+}
+
+void lcd_command(unsigned char cmd)
+{
+ PORTC = cmd;
+ RS = 0; 
+ RW = 0; 
+ EN = 1; 
+ __delay_ms(100);
+ EN = 0;
+}
+
+void lcd_string(const unsigned char *str, unsigned char num)
+{
+ unsigned char i;
+ for (i=0; i<num; i++)
+ {
+ lcd_data(str[i]);
+ }
+}
+
+void lcd_init()
+{
+ lcd_command(0x38); 
+ lcd_command(0x06); 
+ lcd_command(0x0C); 
+ lcd_command(0x01); 
+}
+
+void main(void) {
+    TRISB2 = 0;
+    TRISB3 = 0;
+    TRISC = 0x00;
+    TRISD0 = 0;
+    TRISD1 = 0;
+    TRISD2 = 0;
+    TRISD5 = 1;
+    
+    lcd_init();
+    
+    while(1){
+        if(PIR==1){
+            buzzer = 1;
+            LED = 1;
+            lcd_command(0x83);
+            lcd_string("Motion",7);
+            lcd_command(0xC3);
+            lcd_string("Detected",9);
+            __delay_ms(100);
+            lcd_command(0x01);
+        }
+        else{
+          buzzer = 0;
+          LED = 0;
+          lcd_command(0x83);
+          lcd_string("Motion",6);
+          lcd_command(0xC3);
+          lcd_string("Not Detected",12);
+          __delay_ms(100);
+          lcd_command(0x01); // clear
+        }
+        
+    }
+    
+    return;
+
+}
